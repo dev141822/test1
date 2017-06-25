@@ -1,82 +1,29 @@
 'use strict';
 
-const express = require('express');
-const bodyParser = require('body-parser');
+process.env.DEBUG = 'actions-on-google:*';
+const App = require('actions-on-google').ApiAiApp;
 
-const restService = express();
+//import kotlin module
+var module = require('./node/module_out');
 
-restService.use(bodyParser.urlencoded({
-    extended: true
-}));
+const REPEAT_NUMBER_ACTION = 'repeat_number';
+const NUMBER_ARGUMENT = 'number';
 
-restService.use(bodyParser.json());
+// the name of this function is important
+exports.numberRepeater = (request, response) => {
+  const app = new App({request, response});
+  console.log('Request headers: ' + JSON.stringify(request.headers));
+  console.log('Request body: ' + JSON.stringify(request.body));
 
-restService.post('/echo', function(req, res) {
-    var speech = req.body.result && req.body.result.parameters && req.body.result.parameters.echoText ? req.body.result.parameters.echoText : "Total Adverse Events Count from 2004 to June 2107 are 7132687"
-    return res.json({
-        speech: speech,
-        displayText: speech,
-        source: 'webhook-echo-sample'
-    });
-});
+  // Just repeat the number
+  function repeatNumberFun (app) {
+    let number = app.getArgument(NUMBER_ARGUMENT);
+    app.tell('Awesome! Your number is ' + module.repeat(number) +
+      '! I hope I can do more next time! See you!');
+  }
 
-restService.post('/slack-test', function(req, res) {
+  let actionMap = new Map();
+  actionMap.set(REPEAT_NUMBER_ACTION, repeatNumberFun);
 
-    var slack_message = {
-        "text": "Details of JIRA board for Browse and Commerce",
-        "attachments": [{
-            "title": "JIRA Board",
-            "title_link": "http://www.google.com",
-            "color": "#36a64f",
-
-            "fields": [{
-                "title": "Epic Count",
-                "value": "50",
-                "short": "false"
-            }, {
-                "title": "Story Count",
-                "value": "40",
-                "short": "false"
-            }],
-
-            "thumb_url": "https://stiltsoft.com/blog/wp-content/uploads/2016/01/5.jira_.png"
-        }, {
-            "title": "Story status count",
-            "title_link": "http://www.google.com",
-            "color": "#f49e42",
-
-            "fields": [{
-                "title": "Not started",
-                "value": "50",
-                "short": "false"
-            }, {
-                "title": "Development",
-                "value": "40",
-                "short": "false"
-            }, {
-                "title": "Development",
-                "value": "40",
-                "short": "false"
-            }, {
-                "title": "Development",
-                "value": "40",
-                "short": "false"
-            }]
-        }]
-    }
-    return res.json({
-        speech: "speech",
-        displayText: "speech",
-        source: 'webhook-echo-sample',
-        data: {
-            "slack": slack_message
-        }
-    });
-});
-
-
-
-
-restService.listen((process.env.PORT || 8000), function() {
-    console.log("Server up and listening");
-});
+  app.handleRequest(actionMap);
+};
